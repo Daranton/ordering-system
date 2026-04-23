@@ -1,0 +1,30 @@
+{
+  "order_001": {
+    "customer": "Alice",
+    "item": "Widget",
+    "quantity": 2,
+    "status": "pending",
+    "amount": 100.0
+  },
+  "order_002": {
+    "customer": "Bob",
+    "item": "Gadget",
+    "quantity": 1,
+    "status": "shipped",
+    "amount": 50.0
+  },
+  "38f5478c-299b-4d8e-8f39-d1b733c491f9": {
+    "customer": "Alice",
+    "item": "Widget",
+    "quantity": 3,
+    "status": "pending",
+    "amount": 0.0
+  },
+  "c8d19ccc-859a-4f8f-8a77-c5c2706e4b0e": {
+    "customer": "Alice",
+    "item": "Widget",
+    "quantity": 3,
+    "status": "pending",
+    "amount": 0.0
+  }
+}
