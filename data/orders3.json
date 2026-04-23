@@ -1,4 +1,0 @@
-{
-    "order_001": {"amount": 100.00, "quantity": 2, "status": "pending"},
-    "order_006": {"amount": 50.00, "quantity": 1, "status": "nonexistent_status"}
-}
