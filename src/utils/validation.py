@@ -1,4 +1,4 @@
-from src.utils.models import VALID_STATUSES
+from utils.models import VALID_STATUSES
 
 
 def validate_status(status: str) -> bool:
