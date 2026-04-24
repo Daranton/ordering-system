@@ -42,6 +42,18 @@ python -m cli.main get <order_id>
 
 `pending`, `confirmed`, `shipped`, `delivered`, `cancelled`, `disputed`
 
+## Testing
+
+```bash
+python -m pytest tests/ -v
+```
+
+## Type checking
+
+```bash
+python -m mypy src/ cli/ tests/
+```
+
 ## Project structure
 
 ```
@@ -53,10 +65,7 @@ ordering-system/
 │   └── validation.py    # Status validation
 ├── data/orders.json     # Persisted orders
 └── tests/
-```
-
-## Type checking
-
-```bash
-mypy --strict src/ cli/
+    ├── test_models.py   # Order dataclass and JSON persistence
+    ├── test_ids.py      # ID generation
+    └── test_cli.py      # CLI command functions
 ```
