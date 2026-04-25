@@ -1,14 +1,14 @@
 import json
 import pytest
 from pathlib import Path
-from src.utils.models import Order, load_orders, save_orders
+from src.utils.models import Order, OrderStatus, load_orders, save_orders
 
 
 # --- Order dataclass ---
 
 def test_order_defaults() -> None:
     o = Order(order_id="1", customer="Alice", item="Widget", quantity=3)
-    assert o.status == "pending"
+    assert o.status == OrderStatus.PENDING
     assert o.amount == 0.0
 
 
@@ -18,19 +18,19 @@ def test_order_negative_quantity_raises() -> None:
 
 
 def test_order_invalid_status_raises() -> None:
-    with pytest.raises(ValueError, match="invalid status"):
-        Order(order_id="1", customer="Alice", item="Widget", quantity=1, status="unknown")
+    with pytest.raises(ValueError, match="not a valid OrderStatus"):
+        Order(order_id="1", customer="Alice", item="Widget", quantity=1, status="unknown")  # type: ignore[arg-type]
 
 
 def test_update_status_valid() -> None:
     o = Order(order_id="1", customer="Alice", item="Widget", quantity=1)
     o.update_status("shipped")
-    assert o.status == "shipped"
+    assert o.status == OrderStatus.SHIPPED
 
 
 def test_update_status_invalid_raises() -> None:
     o = Order(order_id="1", customer="Alice", item="Widget", quantity=1)
-    with pytest.raises(ValueError, match="invalid status"):
+    with pytest.raises(ValueError, match="not a valid OrderStatus"):
         o.update_status("broken")
 
 
@@ -73,11 +73,11 @@ def test_save_orders_writes_file(tmp_path: Path) -> None:
 
 def test_save_and_load_round_trip(tmp_path: Path) -> None:
     f = tmp_path / "orders.json"
-    o = Order(order_id="r1", customer="Dave", item="Thing", quantity=7, status="shipped")
+    o = Order(order_id="r1", customer="Dave", item="Thing", quantity=7, status=OrderStatus.SHIPPED)
     save_orders(f, {"r1": o})
     loaded = load_orders(f)
     assert loaded["r1"].customer == "Dave"
-    assert loaded["r1"].status == "shipped"
+    assert loaded["r1"].status == OrderStatus.SHIPPED
     assert loaded["r1"].quantity == 7
 
 

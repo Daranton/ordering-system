@@ -6,4 +6,3 @@ requires-python = ">=3.12"
 [tool.mypy]
 strict = true
 explicit_package_bases = true
-mypy_path = "src"

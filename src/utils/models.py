@@ -1,9 +1,17 @@
 import json
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
-VALID_STATUSES: set[str] = {"pending", "confirmed", "shipped", "delivered", "cancelled", "disputed"}
+
+class OrderStatus(str, Enum):
+    PENDING = "pending"
+    CONFIRMED = "confirmed"
+    SHIPPED = "shipped"
+    DELIVERED = "delivered"
+    CANCELLED = "cancelled"
+    DISPUTED = "disputed"
 
 
 @dataclass
@@ -12,19 +20,17 @@ class Order:
     customer: str
     item: str
     quantity: int
-    status: str = field(default="pending")
+    status: OrderStatus = field(default=OrderStatus.PENDING)
     amount: float = 0.0
 
     def __post_init__(self) -> None:
         if self.quantity < 0:
             raise ValueError(f"quantity cannot be negative, got {self.quantity}")
-        if self.status not in VALID_STATUSES:
-            raise ValueError(f"invalid status '{self.status}', must be one of {VALID_STATUSES}")
+        if not isinstance(self.status, OrderStatus):
+            self.status = OrderStatus(self.status)
 
-    def update_status(self, new_status: str) -> None:
-        if new_status not in VALID_STATUSES:
-            raise ValueError(f"invalid status '{new_status}', must be one of {VALID_STATUSES}")
-        self.status = new_status
+    def update_status(self, new_status: str | OrderStatus) -> None:
+        self.status = OrderStatus(new_status)
 
     def __repr__(self) -> str:
         return (

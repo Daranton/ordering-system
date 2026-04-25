@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import cli.main as cli_main
-from src.utils.models import Order, save_orders
+from src.utils.models import Order, OrderStatus, load_orders, save_orders
 
 
 @pytest.fixture
@@ -23,14 +23,13 @@ def make_args(**kwargs: object) -> argparse.Namespace:
 
 def test_cmd_create_writes_order(orders_file: Path, capsys: pytest.CaptureFixture[str]) -> None:
     cli_main.cmd_create(make_args(customer="Alice", item="Widget", quantity=3))
-    from src.utils.models import load_orders
     orders = load_orders(orders_file)
     assert len(orders) == 1
     order = next(iter(orders.values()))
     assert order.customer == "Alice"
     assert order.item == "Widget"
     assert order.quantity == 3
-    assert order.status == "pending"
+    assert order.status == OrderStatus.PENDING
 
 
 def test_cmd_create_prints_id(orders_file: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -56,8 +55,8 @@ def test_cmd_list_shows_orders(orders_file: Path, capsys: pytest.CaptureFixture[
 
 
 def test_cmd_list_filters_by_status(orders_file: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    o1 = Order(order_id="o1", customer="Dave", item="A", quantity=1, status="pending")
-    o2 = Order(order_id="o2", customer="Eve", item="B", quantity=1, status="shipped")
+    o1 = Order(order_id="o1", customer="Dave", item="A", quantity=1, status=OrderStatus.PENDING)
+    o2 = Order(order_id="o2", customer="Eve", item="B", quantity=1, status=OrderStatus.SHIPPED)
     save_orders(orders_file, {"o1": o1, "o2": o2})
 
     cli_main.cmd_list(make_args(status="shipped"))
@@ -67,7 +66,7 @@ def test_cmd_list_filters_by_status(orders_file: Path, capsys: pytest.CaptureFix
 
 
 def test_cmd_list_no_match_for_filter(orders_file: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    o = Order(order_id="o1", customer="Frank", item="C", quantity=1, status="pending")
+    o = Order(order_id="o1", customer="Frank", item="C", quantity=1, status=OrderStatus.PENDING)
     save_orders(orders_file, {"o1": o})
     cli_main.cmd_list(make_args(status="delivered"))
     out = capsys.readouterr().out

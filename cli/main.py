@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 from src.utils.ids import generate_order_id
-from src.utils.models import Order, load_orders, save_orders
+from src.utils.models import Order, OrderStatus, load_orders, save_orders
 
 DATA_FILE = Path(__file__).parent.parent / "data" / "orders.json"
 
@@ -27,7 +27,7 @@ def cmd_list(args: argparse.Namespace) -> None:
     if not orders:
         print("No orders found.")
         return
-    status_filter = args.status.lower() if args.status else None
+    status_filter = OrderStatus(args.status.lower()) if args.status else None
     shown = 0
     for order in orders.values():
         if status_filter and order.status != status_filter:
