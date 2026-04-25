@@ -32,6 +32,12 @@ def test_cmd_create_writes_order(orders_file: Path, capsys: pytest.CaptureFixtur
     assert order.status == OrderStatus.PENDING
 
 
+def test_cmd_create_zero_quantity(orders_file: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    cli_main.cmd_create(make_args(customer="Alice", item="Widget", quantity=0))
+    orders = load_orders(orders_file)
+    assert next(iter(orders.values())).quantity == 0
+
+
 def test_cmd_create_prints_id(orders_file: Path, capsys: pytest.CaptureFixture[str]) -> None:
     cli_main.cmd_create(make_args(customer="Bob", item="Gadget", quantity=1))
     out = capsys.readouterr().out
@@ -65,12 +71,30 @@ def test_cmd_list_filters_by_status(orders_file: Path, capsys: pytest.CaptureFix
     assert "Dave" not in out
 
 
+def test_cmd_list_no_filter_shows_all(orders_file: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    o1 = Order(order_id="o1", customer="Axe", item="A", quantity=1, status=OrderStatus.PENDING)
+    o2 = Order(order_id="o2", customer="Bob", item="B", quantity=1, status=OrderStatus.SHIPPED)
+    save_orders(orders_file, {"o1": o1, "o2": o2})
+    cli_main.cmd_list(make_args(status=None))
+    out = capsys.readouterr().out
+    assert "Axe" in out
+    assert "Bob" in out
+
+
 def test_cmd_list_no_match_for_filter(orders_file: Path, capsys: pytest.CaptureFixture[str]) -> None:
     o = Order(order_id="o1", customer="Frank", item="C", quantity=1, status=OrderStatus.PENDING)
     save_orders(orders_file, {"o1": o})
     cli_main.cmd_list(make_args(status="delivered"))
     out = capsys.readouterr().out
     assert "No orders with status" in out
+
+
+def test_cmd_list_invalid_status_exits(orders_file: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    o = Order(order_id="o1", customer="Alice", item="A", quantity=1)
+    save_orders(orders_file, {"o1": o})
+    with pytest.raises(SystemExit) as exc_info:
+        cli_main.cmd_list(make_args(status="nonexistent"))
+    assert exc_info.value.code == 1
 
 
 # --- cmd_get ---

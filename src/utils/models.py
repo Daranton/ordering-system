@@ -45,8 +45,16 @@ def load_orders(filepath: Path) -> dict[str, "Order"]:
         with open(filepath, "r") as f:
             data: Any = json.load(f)
         if not isinstance(data, dict):
-            raise ValueError(f"expected JSON object, got {type(data).__name__}")
-        return {oid: Order(order_id=oid, **od) for oid, od in data.items()}
+            print(f"Warning: {filepath} does not contain a JSON object")
+            return {}
+        # Build dict incrementally, in case of a corrupt entry - skips instead crashing the load
+        orders: dict[str, Order] = {}
+        for oid, od in data.items():
+            try:
+                orders[oid] = Order(order_id=oid, **od)
+            except (ValueError, TypeError) as e:
+                print(f"Warning: skipping order '{oid}': {e}")
+        return orders
     except FileNotFoundError:
         return {}
     except json.JSONDecodeError as e:

@@ -27,7 +27,14 @@ def cmd_list(args: argparse.Namespace) -> None:
     if not orders:
         print("No orders found.")
         return
-    status_filter = OrderStatus(args.status.lower()) if args.status else None
+    if args.status:
+        try:
+            status_filter: OrderStatus | None = OrderStatus(args.status.lower())
+        except ValueError:
+            print(f"Unknown status '{args.status}'. Valid values: {[s.value for s in OrderStatus]}", file=sys.stderr)
+            sys.exit(1)
+    else:
+        status_filter = None
     shown = 0
     for order in orders.values():
         if status_filter and order.status != status_filter:

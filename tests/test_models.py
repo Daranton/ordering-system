@@ -12,6 +12,11 @@ def test_order_defaults() -> None:
     assert o.amount == 0.0
 
 
+def test_order_zero_quantity_is_valid() -> None:
+    o = Order(order_id="1", customer="Alice", item="Widget", quantity=0)
+    assert o.quantity == 0
+
+
 def test_order_negative_quantity_raises() -> None:
     with pytest.raises(ValueError, match="quantity cannot be negative"):
         Order(order_id="1", customer="Alice", item="Widget", quantity=-1)
@@ -28,10 +33,24 @@ def test_update_status_valid() -> None:
     assert o.status == OrderStatus.SHIPPED
 
 
+def test_update_status_accepts_enum_member() -> None:
+    o = Order(order_id="1", customer="Alice", item="Widget", quantity=1)
+    o.update_status(OrderStatus.DELIVERED)
+    assert o.status == OrderStatus.DELIVERED
+
+
 def test_update_status_invalid_raises() -> None:
     o = Order(order_id="1", customer="Alice", item="Widget", quantity=1)
     with pytest.raises(ValueError, match="not a valid OrderStatus"):
         o.update_status("broken")
+
+
+def test_order_status_coerced_from_string_on_load(tmp_path: Path) -> None:
+    data = {"z1": {"customer": "Zoe", "item": "X", "quantity": 1, "status": "confirmed", "amount": 0.0}}
+    f = tmp_path / "orders.json"
+    f.write_text(json.dumps(data))
+    orders = load_orders(f)
+    assert orders["z1"].status == OrderStatus.CONFIRMED
 
 
 # --- load_orders ---
@@ -46,6 +65,37 @@ def test_load_orders_bad_json(tmp_path: Path) -> None:
     bad.write_text("not json")
     result = load_orders(bad)
     assert result == {}
+
+
+def test_load_orders_json_not_object(tmp_path: Path) -> None:
+    f = tmp_path / "orders.json"
+    f.write_text("[1, 2, 3]")
+    result = load_orders(f)
+    assert result == {}
+
+
+def test_load_orders_invalid_status_skips_entry(tmp_path: Path) -> None:
+    data = {
+        "bad": {"customer": "X", "item": "Y", "quantity": 1, "status": "bogus", "amount": 0.0},
+        "ok": {"customer": "Axe", "item": "Widget", "quantity": 1, "status": "pending", "amount": 0.0},
+    }
+    f = tmp_path / "orders.json"
+    f.write_text(json.dumps(data))
+    result = load_orders(f)
+    assert "bad" not in result
+    assert "ok" in result
+
+
+def test_load_orders_missing_field_skips_entry(tmp_path: Path) -> None:
+    data = {
+        "bad": {"item": "Y", "quantity": 1, "status": "pending", "amount": 0.0},  # missing entry "customer"
+        "ok": {"customer": "Bobby", "item": "Gadget", "quantity": 2, "status": "pending", "amount": 0.0},
+    }
+    f = tmp_path / "orders.json"
+    f.write_text(json.dumps(data))
+    result = load_orders(f)
+    assert "bad" not in result
+    assert "ok" in result
 
 
 def test_load_orders_valid(tmp_path: Path) -> None:
@@ -79,6 +129,12 @@ def test_save_and_load_round_trip(tmp_path: Path) -> None:
     assert loaded["r1"].customer == "Dave"
     assert loaded["r1"].status == OrderStatus.SHIPPED
     assert loaded["r1"].quantity == 7
+
+
+def test_save_orders_empty_dict(tmp_path: Path) -> None:
+    f = tmp_path / "orders.json"
+    save_orders(f, {})
+    assert json.loads(f.read_text()) == {}
 
 
 def test_save_orders_creates_parent_dirs(tmp_path: Path) -> None:
