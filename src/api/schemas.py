@@ -13,6 +13,7 @@ class OrderItemSchema(BaseModel):
 class OrderCreate(BaseModel):
     customer_name: str = Field(min_length=1, max_length=100)
     items: list[OrderItemSchema] = Field(min_length=1)
+    
 # PATCH request
 class OrderUpdate(BaseModel):
     status: OrderStatus | None = None
