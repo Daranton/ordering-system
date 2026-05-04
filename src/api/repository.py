@@ -8,6 +8,7 @@ class OrderRepository:
         self._orders: dict[str, OrderResponse] = {}
 
     def add(self, order: OrderResponse) -> OrderResponse:
+        # TODO: guard against duplicate order.id
         self._orders[order.id] = order
         return order
 
@@ -16,6 +17,11 @@ class OrderRepository:
 
     def list_all(self) -> list[OrderResponse]:
         return list(self._orders.values())
+
+    def update(self, order: OrderResponse) -> OrderResponse:
+        # TODO: guard against missing order.id
+        self._orders[order.id] = order
+        return order
 
 
 @lru_cache
