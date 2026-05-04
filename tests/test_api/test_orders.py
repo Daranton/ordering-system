@@ -1,21 +1,23 @@
+from collections.abc import Generator
+
 import pytest
-from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient # Pseudo HTTP client for testing
 
 from src.api.main import app
 from src.api.repository import OrderRepository, get_repository
 
 
-VALID_PAYLOAD = {
+VALID_PAYLOAD = { 
     "customer_name": "Alice",
     "items": [{"product_name": "Widget", "quantity": 2, "unit_price": 9.99}],
 }
 
-
+# fixture setup → test runs → fixture teardown
 @pytest.fixture
-def client() -> TestClient:
-    repo = OrderRepository()
-    app.dependency_overrides[get_repository] = lambda: repo
-    yield TestClient(app)
+def client() -> Generator[TestClient, None, None]:
+    repo = OrderRepository() # in-memory repo
+    app.dependency_overrides[get_repository] = lambda: repo # override with test repo
+    yield TestClient(app) # generator to keep fixture 3-step cycle
     app.dependency_overrides.clear()
 
 
