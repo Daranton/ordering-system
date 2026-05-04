@@ -1,18 +1,57 @@
 # Ordering System
 
-A command-line tool for creating and managing orders, backed by a JSON file.
+A REST API and CLI tool for creating and managing orders.
 
 ## Setup
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install pytest mypy
+pip install -e ".[dev]"
 ```
 
 Run all commands from the project root.
 
-## Usage
+## Running the API
+
+```bash
+uvicorn src.api.main:app --reload
+```
+
+The API will be available at `http://localhost:8000`.
+Interactive docs (Swagger UI) at `http://localhost:8000/docs`.
+
+## Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/orders` | Create a new order |
+| `GET` | `/orders` | List all orders (optional `?status=` filter) |
+| `GET` | `/orders/{id}` | Get a single order by ID |
+| `PATCH` | `/orders/{id}` | Update an order's status |
+
+### Status codes
+
+- `201` — order created
+- `404` — order not found
+- `409` — order is in a terminal state (`cancelled` or `delivered`)
+- `422` — request body failed validation
+
+## Running the tests
+
+```bash
+pytest
+```
+
+## Type checking
+
+```bash
+mypy --strict .
+```
+
+## CLI
+
+The CLI operates on a local JSON file independently of the API.
 
 ### Create an order
 
@@ -20,38 +59,11 @@ Run all commands from the project root.
 python -m cli.main create --customer "Alice" --item "Widget" --quantity 3
 ```
 
-```
-Created order 3f2a1b4c-8e9d-4f0a-b1c2-d3e4f5a6b7c8
-```
-
 ### List all orders
 
 ```bash
 python -m cli.main list
-```
-
-```
-  3f2a1b4c-8e9d-4f0a-b1c2-d3e4f5a6b7c8  customer=Alice  item=Widget  qty=3  status=pending
-```
-
-### Filter by status
-
-```bash
 python -m cli.main list --status shipped
-```
-
-```
-  7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d  customer=Bob  item=Gadget  qty=1  status=shipped
-```
-
-Passing an unrecognised status prints an error and exits:
-
-```bash
-python -m cli.main list --status unknown
-```
-
-```
-Unknown status 'unknown'. Valid values: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled', 'disputed']
 ```
 
 ### Get a single order
@@ -60,45 +72,30 @@ Unknown status 'unknown'. Valid values: ['pending', 'confirmed', 'shipped', 'del
 python -m cli.main get 3f2a1b4c-8e9d-4f0a-b1c2-d3e4f5a6b7c8
 ```
 
-```
-Order('3f2a1b4c-8e9d-4f0a-b1c2-d3e4f5a6b7c8', customer='Alice', item='Widget', qty=3, amount=0.0, status='pending')
-```
-
-If the order ID does not exist, the command exits with code 1:
-
-```
-Order '3f2a1b4c-...' not found.
-```
-
 ## Valid statuses
 
 `pending`, `confirmed`, `shipped`, `delivered`, `cancelled`, `disputed`
-
-## Testing
-
-```bash
-python -m pytest tests/ -v
-```
-
-## Type checking
-
-```bash
-python -m mypy src/ cli/ tests/
-```
 
 ## Project structure
 
 ```
 ordering-system/
-├── cli/main.py          # CLI entry point (argparse)
-├── src/utils/
-│   ├── models.py        # Order dataclass, OrderStatus enum, load/save helpers
-│   ├── ids.py           # UUID generation
-│   └── validation.py    # Status validation
-├── data/orders.json     # Persisted orders
+├── src/
+│   ├── api/
+│   │   ├── main.py          # FastAPI app and endpoints
+│   │   ├── repository.py    # In-memory order storage
+│   │   └── schemas.py       # Pydantic models (OrderCreate, OrderUpdate, OrderResponse)
+│   └── utils/
+│       ├── models.py        # Order dataclass, OrderStatus enum, load/save helpers
+│       ├── ids.py           # UUID generation
+│       └── validation.py    # Status validation
+├── cli/main.py              # CLI entry point (argparse)
+├── data/orders.json         # CLI persisted orders
 └── tests/
-    ├── test_models.py   # Order dataclass and JSON persistence
-    ├── test_ids.py      # ID generation
-    ├── test_cli.py      # CLI command functions
-    └── test_validation.py  # Status validation
+    ├── test_api/
+    │   └── test_orders.py   # API endpoint tests
+    ├── test_models.py        # Order dataclass and JSON persistence
+    ├── test_ids.py           # ID generation
+    ├── test_cli.py           # CLI command functions
+    └── test_schemas.py       # Pydantic schema validation
 ```
