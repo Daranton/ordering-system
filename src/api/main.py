@@ -57,10 +57,7 @@ def list_orders(
     status: Optional[OrderStatus] = None,
     repo: OrderRepository = Depends(get_repository),
 ) -> list[OrderResponse]:
-    orders = repo.list_all()
-    if status is not None:
-        orders = [o for o in orders if o.status == status]
-    return orders
+    return repo.list_by_status(status)
 
 
 @app.get("/orders/{order_id}", response_model=OrderResponse)

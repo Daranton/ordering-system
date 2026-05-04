@@ -1,6 +1,7 @@
 from functools import lru_cache
 
 from src.api.schemas import OrderResponse
+from src.utils.models import OrderStatus
 
 
 class OrderRepository:
@@ -17,6 +18,11 @@ class OrderRepository:
 
     def list_all(self) -> list[OrderResponse]:
         return list(self._orders.values())
+
+    def list_by_status(self, status: OrderStatus | None) -> list[OrderResponse]:
+        if status is None:
+            return self.list_all()
+        return [o for o in self._orders.values() if o.status == status]
 
     def update(self, order: OrderResponse) -> OrderResponse:
         # TODO: guard against missing order.id
