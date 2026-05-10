@@ -1,14 +1,28 @@
 import http
+from collections.abc import Generator
 from datetime import datetime, timezone
-
 from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException
+from sqlalchemy.orm import Session
 
-from src.api.repository import OrderRepository, get_repository
+from src.api.database import SessionLocal
+from src.api.repository import OrderRepository
 from src.api.schemas import OrderCreate, OrderResponse, OrderUpdate
 from src.utils.ids import generate_order_id
 from src.utils.models import OrderStatus
+
+
+def get_db() -> Generator[Session, None, None]:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def get_repository(db: Session = Depends(get_db)) -> OrderRepository:
+    return OrderRepository(db)
 
 app = FastAPI(title = "Ordering System API",
               description = "API for managing orders in the ordering system",
@@ -84,6 +98,9 @@ def update_order(
         raise HTTPException(status_code=404, detail=f"Order '{order_id}' not found")
     if order.status in TERMINAL_STATUSES:
         raise HTTPException(status_code=409, detail=f"Order '{order_id}' is in a terminal state ({order.status}) and cannot be updated")
-    updated = order.model_copy(update={"status": payload.status})
-    return repo.update(updated)
+    if payload.status is None:
+        return order
+    updated = repo.update_status(order_id, payload.status)
+    assert updated is not None
+    return updated
 
