@@ -1,24 +1,11 @@
-from collections.abc import Generator
-
 import pytest
-from fastapi.testclient import TestClient # Pseudo HTTP client for testing
-
-from src.api.main import app
-from src.api.repository import OrderRepository, get_repository
+from fastapi.testclient import TestClient
 
 
-VALID_PAYLOAD = { 
+VALID_PAYLOAD = {
     "customer_name": "Alice",
     "items": [{"product_name": "Widget", "quantity": 2, "unit_price": 9.99}],
 }
-
-# fixture setup → test runs → fixture teardown
-@pytest.fixture
-def client() -> Generator[TestClient, None, None]:
-    repo = OrderRepository() # in-memory repo
-    app.dependency_overrides[get_repository] = lambda: repo # override with test repo
-    yield TestClient(app) # generator to keep fixture 3-step cycle
-    app.dependency_overrides.clear()
 
 
 # --- Create ---
@@ -109,3 +96,29 @@ def test_patch_terminal_order(client: TestClient) -> None:
 def test_patch_nonexistent_order(client: TestClient) -> None:
     response = client.patch("/orders/nonexistent-id", json={"status": "confirmed"})
     assert response.status_code == 404
+
+
+# --- Persistence ---
+
+def test_order_persists_across_requests(client: TestClient) -> None:
+    order_id = client.post("/orders", json=VALID_PAYLOAD).json()["id"]
+    response = client.get(f"/orders/{order_id}")
+    assert response.status_code == 200
+    assert response.json()["id"] == order_id
+    assert response.json()["customer_name"] == "Alice"
+
+
+def test_order_items_are_stored(client: TestClient) -> None:
+    payload = {
+        "customer_name": "Bob",
+        "items": [
+            {"product_name": "Widget", "quantity": 2, "unit_price": 9.99},
+            {"product_name": "Gadget", "quantity": 1, "unit_price": 24.99},
+        ],
+    }
+    order_id = client.post("/orders", json=payload).json()["id"]
+    data = client.get(f"/orders/{order_id}").json()
+    assert len(data["items"]) == 2
+    product_names = {item["product_name"] for item in data["items"]}
+    assert product_names == {"Widget", "Gadget"}
+    assert data["total"] == pytest.approx(44.97)
