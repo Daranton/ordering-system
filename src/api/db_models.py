@@ -1,12 +1,16 @@
 from datetime import datetime
-from sqlalchemy import String, Integer, Numeric, DateTime, ForeignKey, Enum as SAEnum
+from sqlalchemy import String, Integer, Numeric, DateTime, ForeignKey, Index, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.api.database import Base
 from src.utils.models import OrderStatus
 
 class OrderModel(Base):
     __tablename__ = "orders"
-    
+    __table_args__ = (
+        Index("ix_orders_status", "status"),
+        Index("ix_orders_created_at", "created_at"),
+    )
+
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     customer_name: Mapped[str] = mapped_column(String(100), nullable=False)
     status: Mapped[OrderStatus] = mapped_column(
@@ -15,6 +19,8 @@ class OrderModel(Base):
     total: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True, default=None)
+
     items: Mapped[list["OrderItemModel"]] = relationship(
         back_populates="order", cascade="all, delete-orphan"
     )

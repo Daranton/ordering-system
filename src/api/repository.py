@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -33,13 +34,24 @@ class OrderRepository:
 
     def get(self, order_id: str) -> OrderResponse | None:
         db_order = self._session.get(OrderModel, order_id)
-        return _to_response(db_order) if db_order else None
+        if db_order is None or db_order.deleted_at is not None:
+            return None
+        return _to_response(db_order)
 
     def list_by_status(self, status: OrderStatus | None) -> list[OrderResponse]:
-        stmt = select(OrderModel)
+        stmt = select(OrderModel).where(OrderModel.deleted_at.is_(None))
         if status is not None:
             stmt = stmt.where(OrderModel.status == status)
         return [_to_response(o) for o in self._session.scalars(stmt).all()]
+
+    def soft_delete(self, order_id: str) -> OrderResponse | None:
+        db_order = self._session.get(OrderModel, order_id)
+        if db_order is None or db_order.deleted_at is not None:
+            return None
+        db_order.deleted_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        self._session.commit()
+        self._session.refresh(db_order)
+        return _to_response(db_order)
 
     def update_status(self, order_id: str, status: OrderStatus) -> OrderResponse | None:
         db_order = self._session.get(OrderModel, order_id)
