@@ -11,11 +11,13 @@ pip install -e ".[dev]"
 cp .env.example .env
 ```
 
+`.env` holds the database connection URL. The defaults in `.env.example` match the Docker Compose dev database — edit only if you're connecting to a different Postgres instance.
+
 Run all commands from the project root.
 
 ## Database
 
-Start the development database:
+Ensure `.env` is in place (see Setup), then start the development database:
 
 ```bash
 docker compose up -d postgres
