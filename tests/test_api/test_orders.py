@@ -122,3 +122,31 @@ def test_order_items_are_stored(client: TestClient) -> None:
     product_names = {item["product_name"] for item in data["items"]}
     assert product_names == {"Widget", "Gadget"}
     assert data["total"] == pytest.approx(44.97)
+
+
+# --- Soft delete ---
+
+def test_delete_order_soft_deletes(client: TestClient) -> None:
+    order_id = client.post("/orders", json=VALID_PAYLOAD).json()["id"]
+    assert client.delete(f"/orders/{order_id}").status_code == 204
+    assert client.get(f"/orders/{order_id}").status_code == 404
+
+
+def test_deleted_order_excluded_from_list(client: TestClient) -> None:
+    order_id = client.post("/orders", json=VALID_PAYLOAD).json()["id"]
+    client.delete(f"/orders/{order_id}")
+    orders = client.get("/orders").json()
+    assert all(o["id"] != order_id for o in orders)
+
+
+def test_deleted_order_still_in_database(client: TestClient, db_session: Session) -> None:
+    from src.api.db_models import OrderModel
+    order_id = client.post("/orders", json=VALID_PAYLOAD).json()["id"]
+    client.delete(f"/orders/{order_id}")
+    db_order = db_session.get(OrderModel, order_id)
+    assert db_order is not None
+    assert db_order.deleted_at is not None
+
+
+def test_delete_order_not_found(client: TestClient) -> None:
+    assert client.delete("/orders/nonexistent-id").status_code == 404

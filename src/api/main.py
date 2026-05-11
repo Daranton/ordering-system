@@ -85,6 +85,15 @@ def get_order(
     return order
 
 
+@app.delete("/orders/{order_id}", status_code=204)
+def delete_order(
+    order_id: str,
+    repo: OrderRepository = Depends(get_repository),
+) -> None:
+    if repo.soft_delete(order_id) is None:
+        raise HTTPException(status_code=404, detail=f"Order '{order_id}' not found")
+
+
 TERMINAL_STATUSES = {OrderStatus.CANCELLED, OrderStatus.DELIVERED}
 
 @app.patch("/orders/{order_id}", response_model=OrderResponse)
