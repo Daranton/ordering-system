@@ -8,9 +8,24 @@ A REST API and CLI tool for creating and managing orders.
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
+cp .env.example .env
 ```
 
 Run all commands from the project root.
+
+## Database
+
+Start the development database:
+
+```bash
+docker compose up -d postgres
+```
+
+Apply migrations:
+
+```bash
+alembic upgrade head
+```
 
 ## Running the API
 
@@ -29,17 +44,22 @@ Interactive docs (Swagger UI) at `http://localhost:8000/docs`.
 | `GET` | `/orders` | List all orders (optional `?status=` filter) |
 | `GET` | `/orders/{id}` | Get a single order by ID |
 | `PATCH` | `/orders/{id}` | Update an order's status |
+| `DELETE` | `/orders/{id}` | Soft-delete an order |
 
 ### Status codes
 
 - `201` — order created
+- `204` — order deleted
 - `404` — order not found
 - `409` — order is in a terminal state (`cancelled` or `delivered`)
 - `422` — request body failed validation
 
 ## Running the tests
 
+Start the test database, then run the suite:
+
 ```bash
+docker compose up -d postgres-test
 pytest
 ```
 
