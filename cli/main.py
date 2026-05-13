@@ -1,70 +1,73 @@
 import argparse
+import os
 import sys
-from pathlib import Path
 
-from src.utils.ids import generate_order_id
-from src.utils.models import Order, OrderStatus, load_orders, save_orders
+import httpx
 
-DATA_FILE = Path(__file__).parent.parent / "data" / "orders.json"
+BASE_URL = os.environ.get("ORDERING_API_URL", "http://localhost:8000")
 
 
 def cmd_create(args: argparse.Namespace) -> None:
-    orders = load_orders(DATA_FILE)
-    order_id = generate_order_id()
-    order = Order(
-        order_id=order_id,
-        customer=args.customer,
-        item=args.item,
-        quantity=args.quantity,
-    )
-    orders[order_id] = order
-    save_orders(DATA_FILE, orders)
-    print(f"Created order {order_id}")
+    payload = {
+        "customer_name": args.customer,
+        "items": [
+            {
+                "product_name": args.item,
+                "quantity": args.quantity,
+                "unit_price": args.unit_price,
+            }
+        ],
+    }
+    response = httpx.post(f"{BASE_URL}/orders", json=payload)
+    response.raise_for_status()
+    data: dict[str, object] = response.json()
+    print(f"Created order {data['id']}")
 
 
 def cmd_list(args: argparse.Namespace) -> None:
-    orders = load_orders(DATA_FILE)
+    params: dict[str, str] = {}
+    if args.status:
+        params["status"] = args.status.lower()
+    response = httpx.get(f"{BASE_URL}/orders", params=params)
+    if response.status_code == 422:
+        print(f"Unknown status '{args.status}'.", file=sys.stderr)
+        sys.exit(1)
+    response.raise_for_status()
+    orders: list[dict[str, object]] = response.json()
     if not orders:
         print("No orders found.")
         return
-    if args.status:
-        try:
-            status_filter: OrderStatus | None = OrderStatus(args.status.lower())
-        except ValueError:
-            print(f"Unknown status '{args.status}'. Valid values: {[s.value for s in OrderStatus]}", file=sys.stderr)
-            sys.exit(1)
-    else:
-        status_filter = None
-    shown = 0
-    for order in orders.values():
-        if status_filter and order.status != status_filter:
-            continue
-        print(f"  {order.order_id}  customer={order.customer}  item={order.item}  qty={order.quantity}  status={order.status}")
-        shown += 1
-    if shown == 0:
-        print(f"No orders with status '{args.status}'.")
+    for order in orders:
+        print(f"  {order['id']}  customer={order['customer_name']}  status={order['status']}  total={order['total']}")
 
-def cmd_update_status(args: argparse.Namespace) -> None:
-    orders = load_orders(DATA_FILE)
-    order = orders.get(args.order_id)
-    if order is None:
-        print(f"Order '{args.order_id}' not found.", file=sys.stderr)
-        sys.exit(1)
-    try:
-        order.update_status(args.status.lower())
-    except ValueError:
-        print(f"Unknown status '{args.status}'. Valid values: {[s.value for s in OrderStatus]}", file=sys.stderr)
-        sys.exit(1)
-    save_orders(DATA_FILE, orders)
-    print(f"Updated order {args.order_id} status to '{order.status.value}'")
 
 def cmd_get(args: argparse.Namespace) -> None:
-    orders = load_orders(DATA_FILE)
-    order = orders.get(args.order_id)
-    if order is None:
+    response = httpx.get(f"{BASE_URL}/orders/{args.order_id}")
+    if response.status_code == 404:
         print(f"Order '{args.order_id}' not found.", file=sys.stderr)
         sys.exit(1)
-    print(order)
+    response.raise_for_status()
+    print(response.json())
+
+
+def cmd_update_status(args: argparse.Namespace) -> None:
+    response = httpx.patch(
+        f"{BASE_URL}/orders/{args.order_id}",
+        json={"status": args.status.lower()},
+    )
+    if response.status_code == 404:
+        print(f"Order '{args.order_id}' not found.", file=sys.stderr)
+        sys.exit(1)
+    if response.status_code == 409:
+        data: dict[str, object] = response.json()
+        print(f"Cannot update: {data['detail']}", file=sys.stderr)
+        sys.exit(1)
+    if response.status_code == 422:
+        print(f"Unknown status '{args.status}'.", file=sys.stderr)
+        sys.exit(1)
+    response.raise_for_status()
+    data = response.json()
+    print(f"Updated order {args.order_id} status to '{data['status']}'")
 
 
 def main() -> None:
@@ -75,6 +78,7 @@ def main() -> None:
     create_p.add_argument("--customer", required=True, help="Customer name")
     create_p.add_argument("--item", required=True, help="Item name")
     create_p.add_argument("--quantity", type=int, required=True, help="Quantity")
+    create_p.add_argument("--unit-price", type=float, required=True, dest="unit_price", help="Unit price")
 
     list_p = subparsers.add_parser("list", help="List orders")
     list_p.add_argument("--status", help="Filter by status (e.g. pending, shipped)")
