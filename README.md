@@ -94,6 +94,18 @@ python -m cli.main list --status shipped
 python -m cli.main get 3f2a1b4c-8e9d-4f0a-b1c2-d3e4f5a6b7c8
 ```
 
+### Update an order's status
+
+```bash
+python -m cli.main update <order_id> <status>
+```
+
+Example:
+
+```bash
+python -m cli.main update 3f2a1b4c-8e9d-4f0a-b1c2-d3e4f5a6b7c8 shipped
+```
+
 ## Valid statuses
 
 `pending`, `confirmed`, `shipped`, `delivered`, `cancelled`, `disputed`

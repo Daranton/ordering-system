@@ -44,6 +44,19 @@ def cmd_list(args: argparse.Namespace) -> None:
     if shown == 0:
         print(f"No orders with status '{args.status}'.")
 
+def cmd_update_status(args: argparse.Namespace) -> None:
+    orders = load_orders(DATA_FILE)
+    order = orders.get(args.order_id)
+    if order is None:
+        print(f"Order '{args.order_id}' not found.", file=sys.stderr)
+        sys.exit(1)
+    try:
+        order.update_status(args.status.lower())
+    except ValueError:
+        print(f"Unknown status '{args.status}'. Valid values: {[s.value for s in OrderStatus]}", file=sys.stderr)
+        sys.exit(1)
+    save_orders(DATA_FILE, orders)
+    print(f"Updated order {args.order_id} status to '{order.status.value}'")
 
 def cmd_get(args: argparse.Namespace) -> None:
     orders = load_orders(DATA_FILE)
@@ -69,6 +82,10 @@ def main() -> None:
     get_p = subparsers.add_parser("get", help="Get a single order by ID")
     get_p.add_argument("order_id", help="Order ID")
 
+    update_p = subparsers.add_parser("update", help="Update order status")
+    update_p.add_argument("order_id", help="Order ID")
+    update_p.add_argument("status", help="New status")
+
     args = parser.parse_args()
 
     if args.command == "create":
@@ -77,6 +94,8 @@ def main() -> None:
         cmd_list(args)
     elif args.command == "get":
         cmd_get(args)
+    elif args.command == "update":
+        cmd_update_status(args)
 
 
 if __name__ == "__main__":
