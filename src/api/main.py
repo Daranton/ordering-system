@@ -7,7 +7,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 
 from src.api.database import SessionLocal
-from src.api.repository import OrderRepository
+from src.repository.order_repository import OrderRepository
 from src.api.schemas import OrderCreate, OrderResponse, OrderUpdate
 from src.utils.ids import generate_order_id
 from src.utils.models import OrderStatus
