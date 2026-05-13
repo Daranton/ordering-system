@@ -1,15 +1,14 @@
 import http
 from collections.abc import Generator
-from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 
 from src.api.database import SessionLocal
-from src.repository.order_repository import OrderRepository
 from src.api.schemas import OrderCreate, OrderResponse, OrderUpdate
-from src.utils.ids import generate_order_id
+from src.repository.order_repository import OrderRepository
+from src.service.order_service import OrderService, _NotFound, _Terminal
 from src.utils.models import OrderStatus
 
 
@@ -24,21 +23,30 @@ def get_db() -> Generator[Session, None, None]:
 def get_repository(db: Session = Depends(get_db)) -> OrderRepository:
     return OrderRepository(db)
 
-app = FastAPI(title = "Ordering System API",
-              description = "API for managing orders in the ordering system",
-              version = "1.0.0")
+# route function -> Depends(get_service) -> Depends(get_repository) -> Depends(get_db) -> SessionLocal()
+def get_service(repo: OrderRepository = Depends(get_repository)) -> OrderService:
+    return OrderService(repo)
+
+
+app = FastAPI(title="Ordering System API",
+              description="API for managing orders in the ordering system",
+              version="1.0.0")
+
 
 @app.get("/")
 def root() -> dict[str, str]:
     return {"status": "Ordering System API is running!"}
 
+
 @app.get("/hello/{name}")
 def hello(name: str) -> dict[str, str]:
     return {"message": f"Hello, {name}!"}
 
+
 @app.get("/search")
 def search(q: str = "", limit: int = 10) -> dict[str, str | int]:
     return {"q": q, "limit": limit}
+
 
 @app.get("/status/{code}")
 def get_status(code: int) -> dict[str, int | str]:
@@ -52,34 +60,25 @@ def get_status(code: int) -> dict[str, int | str]:
 @app.post("/orders", response_model=OrderResponse, status_code=201)
 def create_order(
     payload: OrderCreate,
-    repo: OrderRepository = Depends(get_repository),
+    svc: OrderService = Depends(get_service),
 ) -> OrderResponse:
-    total = sum(item.quantity * item.unit_price for item in payload.items)
-    order = OrderResponse(
-        id=generate_order_id(),
-        customer_name=payload.customer_name,
-        items=payload.items,
-        status=OrderStatus.PENDING,
-        total=total,
-        created_at=datetime.now(timezone.utc),
-    )
-    return repo.add(order)
+    return svc.create_order(payload)
 
 
 @app.get("/orders", response_model=list[OrderResponse])
 def list_orders(
     status: Optional[OrderStatus] = None,
-    repo: OrderRepository = Depends(get_repository),
+    svc: OrderService = Depends(get_service),
 ) -> list[OrderResponse]:
-    return repo.list_by_status(status)
+    return svc.list_orders(status)
 
 
 @app.get("/orders/{order_id}", response_model=OrderResponse)
 def get_order(
     order_id: str,
-    repo: OrderRepository = Depends(get_repository),
+    svc: OrderService = Depends(get_service),
 ) -> OrderResponse:
-    order = repo.get(order_id)
+    order = svc.get_order(order_id)
     if order is None:
         raise HTTPException(status_code=404, detail=f"Order '{order_id}' not found")
     return order
@@ -88,28 +87,21 @@ def get_order(
 @app.delete("/orders/{order_id}", status_code=204)
 def delete_order(
     order_id: str,
-    repo: OrderRepository = Depends(get_repository),
+    svc: OrderService = Depends(get_service),
 ) -> None:
-    if repo.soft_delete(order_id) is None:
+    if not svc.delete_order(order_id):
         raise HTTPException(status_code=404, detail=f"Order '{order_id}' not found")
 
-
-TERMINAL_STATUSES = {OrderStatus.CANCELLED, OrderStatus.DELIVERED}
 
 @app.patch("/orders/{order_id}", response_model=OrderResponse)
 def update_order(
     order_id: str,
     payload: OrderUpdate,
-    repo: OrderRepository = Depends(get_repository),
+    svc: OrderService = Depends(get_service),
 ) -> OrderResponse:
-    order = repo.get(order_id)
-    if order is None:
+    result = svc.update_order_status(order_id, payload)
+    if isinstance(result, _NotFound):
         raise HTTPException(status_code=404, detail=f"Order '{order_id}' not found")
-    if order.status in TERMINAL_STATUSES:
-        raise HTTPException(status_code=409, detail=f"Order '{order_id}' is in a terminal state ({order.status}) and cannot be updated")
-    if payload.status is None:
-        return order
-    updated = repo.update_status(order_id, payload.status)
-    assert updated is not None
-    return updated
-
+    if isinstance(result, _Terminal):
+        raise HTTPException(status_code=409, detail=f"Order '{order_id}' is in a terminal state ({result.status}) and cannot be updated")
+    return result
