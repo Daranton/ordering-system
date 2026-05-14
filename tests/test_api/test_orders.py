@@ -1,3 +1,4 @@
+# Integration tests — full stack with real test database, verifies all layers work together.
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
