@@ -1,7 +1,7 @@
 from sqlalchemy import select
 
-from src.api.database import Base, SessionLocal, engine
-from src.api.db_models import OrderItemModel, OrderModel
+from src.database.connection import Base, SessionLocal, engine
+from src.database.models import OrderItemModel, OrderModel
 from src.utils.models import OrderStatus
 from datetime import datetime, timezone
 
