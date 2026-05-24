@@ -56,11 +56,13 @@ def test_create_order_sets_pending_status() -> None:
 
 def test_create_order_generates_id() -> None:
     repo = make_repo()
-    repo.add.return_value = make_order()
+    repo.add.side_effect = lambda order: order
     svc = OrderService(repo)
-    svc.create_order("Carol", [OrderItem(product_name="Thing", quantity=1, unit_price=1.0)])
-    added = repo.add.call_args[0][0]
-    assert len(added.id) > 0
+    ids = {
+        svc.create_order("Carol", [OrderItem(product_name="Thing", quantity=1, unit_price=1.0)]).id
+        for _ in range(100)
+    }
+    assert len(ids) == 100
 
 
 # --- get_order ---

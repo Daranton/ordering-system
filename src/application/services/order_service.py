@@ -1,8 +1,8 @@
+import uuid
 from datetime import datetime, timezone
 
 from src.domain.order import Order, OrderItem, OrderStatus
 from src.domain.repository import OrderRepositoryProtocol
-from src.domain.ids import generate_order_id
 from src.domain.exceptions import InvalidTransitionError, OrderNotFoundError
 
 
@@ -13,7 +13,7 @@ class OrderService:
     def create_order(self, customer_name: str, items: list[OrderItem]) -> Order:
         total = sum(item.quantity * item.unit_price for item in items)
         order = Order(
-            id=generate_order_id(),
+            id=str(uuid.uuid4()),
             customer_name=customer_name,
             items=items,
             status=OrderStatus.PENDING,
