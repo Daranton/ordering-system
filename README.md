@@ -68,12 +68,12 @@ pytest
 ## Type checking
 
 ```bash
-mypy --strict .
+mypy . (strict is already set in pyproject.toml)
 ```
 
 ## CLI
 
-The CLI operates on a local JSON file independently of the API.
+The CLI communicates with the API over HTTP. Make sure the API is running before using it.
 
 ### Create an order
 
@@ -115,21 +115,34 @@ python -m cli.main update 3f2a1b4c-8e9d-4f0a-b1c2-d3e4f5a6b7c8 shipped
 ```
 ordering-system/
 ├── src/
+│   ├── domain/                         # Pure business logic, no I/O
+│   │   ├── order.py                    # Order, OrderItem, OrderStatus
+│   │   ├── repository.py               # OrderRepositoryProtocol (abstract interface)
+│   │   └── ids.py                      # generate_order_id
+│   ├── application/
+│   │   └── services/
+│   │       └── order_service.py        # Use cases, depends only on domain
+│   ├── infrastructure/
+│   │   └── db/
+│   │       ├── connection.py           # SQLAlchemy engine and session
+│   │       ├── models.py               # ORM models (OrderModel, OrderItemModel)
+│   │       └── repositories/
+│   │           └── order_repository.py # Concrete repository implementation
 │   ├── api/
-│   │   ├── main.py          # FastAPI app and endpoints
-│   │   ├── repository.py    # In-memory order storage
-│   │   └── schemas.py       # Pydantic models (OrderCreate, OrderUpdate, OrderResponse)
-│   └── utils/
-│       ├── models.py        # Order dataclass, OrderStatus enum, load/save helpers
-│       ├── ids.py           # UUID generation
-│       └── validation.py    # Status validation
-├── cli/main.py              # CLI entry point (argparse)
-├── data/orders.json         # CLI persisted orders
+│   │   ├── main.py                     # FastAPI routes, dependency wiring, schema mapping
+│   │   └── schemas.py                  # Pydantic request/response schemas
+│   └── config.py                       # DATABASE_URL from environment
+├── cli/
+│   └── main.py                         # CLI client (communicates with API via HTTP)
+├── alembic/                            # Database migrations
+│   └── versions/
 └── tests/
     ├── test_api/
-    │   └── test_orders.py   # API endpoint tests
-    ├── test_models.py        # Order dataclass and JSON persistence
-    ├── test_ids.py           # ID generation
-    ├── test_cli.py           # CLI command functions
-    └── test_schemas.py       # Pydantic schema validation
+    │   ├── test_orders.py              # Integration tests (full stack, real database)
+    │   └── test_schemas.py             # Pydantic schema validation
+    ├── test_service/
+    │   └── test_order_service.py       # Unit tests (mocked repository)
+    ├── test_cli/
+    │   └── test_cli.py                 # CLI tests
+    └── test_ids.py                     # ID generation
 ```
