@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import TypeAlias
 
 from src.domain.order import Order, OrderItem, OrderStatus
-from src.repository.order_repository import OrderRepository
+from src.domain.repository import OrderRepositoryProtocol
 from src.utils.ids import generate_order_id
 
 TERMINAL_STATUSES: frozenset[OrderStatus] = frozenset({OrderStatus.CANCELLED, OrderStatus.DELIVERED})
@@ -21,7 +21,7 @@ UpdateResult: TypeAlias = Order | _NotFound | _Terminal
 
 
 class OrderService:
-    def __init__(self, repo: OrderRepository) -> None:
+    def __init__(self, repo: OrderRepositoryProtocol) -> None:
         self._repo = repo
 
     def create_order(self, customer_name: str, items: list[OrderItem]) -> Order:

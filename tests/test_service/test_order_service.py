@@ -4,7 +4,7 @@ from datetime import datetime
 from unittest.mock import MagicMock
 
 from src.domain.order import Order, OrderItem, OrderStatus
-from src.repository.order_repository import OrderRepository
+from src.infrastructure.db.repositories.order_repository import OrderRepository
 from src.application.services.order_service import OrderService, _NotFound, _Terminal
 
 

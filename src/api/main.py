@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from src.infrastructure.db.connection import SessionLocal
 from src.api.schemas import OrderCreate, OrderItemSchema, OrderResponse, OrderUpdate
-from src.repository.order_repository import OrderRepository
+from src.infrastructure.db.repositories.order_repository import OrderRepository
 from src.application.services.order_service import OrderService, _NotFound, _Terminal
 from src.domain.order import Order, OrderItem, OrderStatus
 
