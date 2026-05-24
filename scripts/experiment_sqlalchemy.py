@@ -1,8 +1,8 @@
 from sqlalchemy import select
 
-from infrastructure.db.connection import Base, SessionLocal, engine
-from infrastructure.db.models import OrderItemModel, OrderModel
-from src.utils.models import OrderStatus
+from src.infrastructure.db.connection import Base, SessionLocal, engine
+from src.infrastructure.db.models import OrderItemModel, OrderModel
+from src.domain.order import OrderStatus
 from datetime import datetime, timezone
 
 # Create tables (Alembic takes over from Wednesday)

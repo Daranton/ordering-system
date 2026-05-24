@@ -4,26 +4,26 @@ from datetime import datetime
 from unittest.mock import MagicMock
 
 from src.api.schemas import OrderCreate, OrderItemSchema, OrderResponse, OrderUpdate
+from src.domain.order import Order, OrderItem, OrderStatus
 from src.repository.order_repository import OrderRepository
-from application.services.order_service import OrderService, _NotFound, _Terminal
-from src.utils.models import OrderStatus
+from src.application.services.order_service import OrderService, _NotFound, _Terminal
 
 
 def make_repo() -> MagicMock:
     return MagicMock(spec=OrderRepository)
 
 
-def make_order_response(
+def make_order(
     *,
     id: str = "test-id",
     customer_name: str = "Alice",
     status: OrderStatus = OrderStatus.PENDING,
     total: float = 19.98,
-) -> OrderResponse:
-    return OrderResponse(
+) -> Order:
+    return Order(
         id=id,
         customer_name=customer_name,
-        items=[OrderItemSchema(product_name="Widget", quantity=2, unit_price=9.99)],
+        items=[OrderItem(product_name="Widget", quantity=2, unit_price=9.99)],
         status=status,
         total=total,
         created_at=datetime.now(),
@@ -34,7 +34,7 @@ def make_order_response(
 
 def test_create_order_calculates_total() -> None:
     repo = make_repo()
-    repo.add.return_value = make_order_response(total=19.98)
+    repo.add.return_value = make_order(total=19.98)
     svc = OrderService(repo)
     payload = OrderCreate(
         customer_name="Alice",
@@ -47,7 +47,7 @@ def test_create_order_calculates_total() -> None:
 
 def test_create_order_sets_pending_status() -> None:
     repo = make_repo()
-    repo.add.return_value = make_order_response()
+    repo.add.return_value = make_order()
     svc = OrderService(repo)
     payload = OrderCreate(
         customer_name="Bob",
@@ -60,7 +60,7 @@ def test_create_order_sets_pending_status() -> None:
 
 def test_create_order_generates_id() -> None:
     repo = make_repo()
-    repo.add.return_value = make_order_response()
+    repo.add.return_value = make_order()
     svc = OrderService(repo)
     payload = OrderCreate(
         customer_name="Carol",
@@ -91,7 +91,7 @@ def test_delete_order_returns_false_when_missing() -> None:
 
 def test_delete_order_returns_true_when_found() -> None:
     repo = make_repo()
-    repo.soft_delete.return_value = make_order_response()
+    repo.soft_delete.return_value = make_order()
     svc = OrderService(repo)
     assert svc.delete_order("exists") is True
 
@@ -109,27 +109,24 @@ def test_update_order_status_not_found() -> None:
 @pytest.mark.parametrize("terminal_status", [OrderStatus.CANCELLED, OrderStatus.DELIVERED])
 def test_update_order_status_terminal(terminal_status: OrderStatus) -> None:
     repo = make_repo()
-    repo.get.return_value = make_order_response(status=terminal_status)
+    repo.get.return_value = make_order(status=terminal_status)
     svc = OrderService(repo)
     result = svc.update_order_status("o1", OrderUpdate(status=OrderStatus.SHIPPED))
     assert isinstance(result, _Terminal)
 
 
 def test_update_order_status_none_payload_returns_order() -> None:
-    order = make_order_response()
     repo = make_repo()
-    repo.get.return_value = order
+    repo.get.return_value = make_order()
     svc = OrderService(repo)
     result = svc.update_order_status("o1", OrderUpdate(status=None))
-    assert result == order
+    assert isinstance(result, OrderResponse)
 
 
 def test_update_order_status_success() -> None:
-    original = make_order_response(status=OrderStatus.PENDING)
-    updated = make_order_response(status=OrderStatus.SHIPPED)
     repo = make_repo()
-    repo.get.return_value = original
-    repo.update_status.return_value = updated
+    repo.get.return_value = make_order(status=OrderStatus.PENDING)
+    repo.update_status.return_value = make_order(status=OrderStatus.SHIPPED)
     svc = OrderService(repo)
     result = svc.update_order_status("o1", OrderUpdate(status=OrderStatus.SHIPPED))
     assert isinstance(result, OrderResponse)

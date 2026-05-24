@@ -1,6 +1,6 @@
 from datetime import datetime
 from pydantic import BaseModel, Field, field_validator
-from src.utils.models import OrderStatus
+from src.domain.order import OrderStatus
 
 # Sits at API boundary layer - how orders enter & leave the API.
 # answers the question: "is this valid status and data structure?"

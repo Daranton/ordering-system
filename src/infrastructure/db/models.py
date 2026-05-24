@@ -1,8 +1,8 @@
 from datetime import datetime
 from sqlalchemy import String, Integer, Numeric, DateTime, ForeignKey, Index, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from infrastructure.db.connection import Base
-from src.utils.models import OrderStatus
+from src.infrastructure.db.connection import Base
+from src.domain.order import OrderStatus
 
 class OrderModel(Base):
     __tablename__ = "orders"
