@@ -5,10 +5,10 @@ from typing import Optional
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 
-from src.database.connection import SessionLocal
+from infrastructure.db.connection import SessionLocal
 from src.api.schemas import OrderCreate, OrderResponse, OrderUpdate
 from src.repository.order_repository import OrderRepository
-from src.service.order_service import OrderService, _NotFound, _Terminal
+from application.services.order_service import OrderService, _NotFound, _Terminal
 from src.utils.models import OrderStatus
 
 

@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy import String, Integer, Numeric, DateTime, ForeignKey, Index, Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from src.database.connection import Base
+from infrastructure.db.connection import Base
 from src.utils.models import OrderStatus
 
 class OrderModel(Base):

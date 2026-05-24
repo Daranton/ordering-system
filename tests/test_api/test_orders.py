@@ -142,7 +142,7 @@ def test_deleted_order_excluded_from_list(client: TestClient) -> None:
 
 
 def test_deleted_order_still_in_database(client: TestClient, db_session: Session) -> None:
-    from src.database.models import OrderModel
+    from infrastructure.db.models import OrderModel
     order_id = client.post("/orders", json=VALID_PAYLOAD).json()["id"]
     client.delete(f"/orders/{order_id}")
     db_order = db_session.get(OrderModel, order_id)

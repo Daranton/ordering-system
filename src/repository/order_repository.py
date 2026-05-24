@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from src.database.models import OrderItemModel, OrderModel
+from infrastructure.db.models import OrderItemModel, OrderModel
 from src.api.schemas import OrderItemSchema, OrderResponse
 from src.utils.models import OrderStatus
 
