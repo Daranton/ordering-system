@@ -6,10 +6,10 @@ from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 
 from src.infrastructure.db.connection import SessionLocal
-from src.api.schemas import OrderCreate, OrderResponse, OrderUpdate
+from src.api.schemas import OrderCreate, OrderItemSchema, OrderResponse, OrderUpdate
 from src.repository.order_repository import OrderRepository
 from src.application.services.order_service import OrderService, _NotFound, _Terminal
-from src.domain.order import OrderStatus
+from src.domain.order import Order, OrderItem, OrderStatus
 
 
 def get_db() -> Generator[Session, None, None]:
@@ -26,6 +26,24 @@ def get_repository(db: Session = Depends(get_db)) -> OrderRepository:
 # route function -> Depends(get_service) -> Depends(get_repository) -> Depends(get_db) -> SessionLocal()
 def get_service(repo: OrderRepository = Depends(get_repository)) -> OrderService:
     return OrderService(repo)
+
+
+def _to_response(order: Order) -> OrderResponse:
+    return OrderResponse(
+        id=order.id,
+        customer_name=order.customer_name,
+        status=order.status,
+        total=order.total,
+        created_at=order.created_at,
+        items=[
+            OrderItemSchema(
+                product_name=item.product_name,
+                quantity=item.quantity,
+                unit_price=item.unit_price,
+            )
+            for item in order.items
+        ],
+    )
 
 
 app = FastAPI(title="Ordering System API",
@@ -62,7 +80,15 @@ def create_order(
     payload: OrderCreate,
     svc: OrderService = Depends(get_service),
 ) -> OrderResponse:
-    return svc.create_order(payload)
+    items = [
+        OrderItem(
+            product_name=i.product_name,
+            quantity=i.quantity,
+            unit_price=i.unit_price,
+        )
+        for i in payload.items
+    ]
+    return _to_response(svc.create_order(payload.customer_name, items))
 
 
 @app.get("/orders", response_model=list[OrderResponse])
@@ -70,7 +96,7 @@ def list_orders(
     status: Optional[OrderStatus] = None,
     svc: OrderService = Depends(get_service),
 ) -> list[OrderResponse]:
-    return svc.list_orders(status)
+    return [_to_response(o) for o in svc.list_orders(status)]
 
 
 @app.get("/orders/{order_id}", response_model=OrderResponse)
@@ -81,7 +107,7 @@ def get_order(
     order = svc.get_order(order_id)
     if order is None:
         raise HTTPException(status_code=404, detail=f"Order '{order_id}' not found")
-    return order
+    return _to_response(order)
 
 
 @app.delete("/orders/{order_id}", status_code=204)
@@ -99,9 +125,9 @@ def update_order(
     payload: OrderUpdate,
     svc: OrderService = Depends(get_service),
 ) -> OrderResponse:
-    result = svc.update_order_status(order_id, payload)
+    result = svc.update_order_status(order_id, payload.status)
     if isinstance(result, _NotFound):
         raise HTTPException(status_code=404, detail=f"Order '{order_id}' not found")
     if isinstance(result, _Terminal):
         raise HTTPException(status_code=409, detail=f"Order '{order_id}' is in a terminal state ({result.status}) and cannot be updated")
-    return result
+    return _to_response(result)
