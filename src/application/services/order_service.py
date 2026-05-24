@@ -3,7 +3,7 @@ from typing import TypeAlias
 
 from src.domain.order import Order, OrderItem, OrderStatus
 from src.domain.repository import OrderRepositoryProtocol
-from src.utils.ids import generate_order_id
+from src.domain.ids import generate_order_id
 
 TERMINAL_STATUSES: frozenset[OrderStatus] = frozenset({OrderStatus.CANCELLED, OrderStatus.DELIVERED})
 

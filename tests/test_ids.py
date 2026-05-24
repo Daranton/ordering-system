@@ -1,4 +1,4 @@
-from src.utils.ids import generate_order_id
+from src.domain.ids import generate_order_id
 
 
 def test_returns_string() -> None:
