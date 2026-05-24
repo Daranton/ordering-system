@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -27,3 +29,10 @@ class Order:
     total: float
     created_at: datetime
     items: list[OrderItem]
+
+    def transition_to(self, new_status: OrderStatus) -> None:
+        from src.domain.state_machine import TERMINAL_STATUSES
+        from src.domain.exceptions import InvalidTransitionError
+        if self.status in TERMINAL_STATUSES:
+            raise InvalidTransitionError(self.status)
+        self.status = new_status

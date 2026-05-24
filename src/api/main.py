@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session
 from src.infrastructure.db.connection import SessionLocal
 from src.api.schemas import OrderCreate, OrderItemSchema, OrderResponse, OrderUpdate
 from src.infrastructure.db.repositories.order_repository import OrderRepository
-from src.application.services.order_service import OrderService, _NotFound, _Terminal
+from src.application.services.order_service import OrderService
+from src.domain.exceptions import InvalidTransitionError, OrderNotFoundError
 from src.domain.order import Order, OrderItem, OrderStatus
 
 
@@ -125,9 +126,15 @@ def update_order(
     payload: OrderUpdate,
     svc: OrderService = Depends(get_service),
 ) -> OrderResponse:
-    result = svc.update_order_status(order_id, payload.status)
-    if isinstance(result, _NotFound):
+    if payload.status is None:
+        order = svc.get_order(order_id)
+        if order is None:
+            raise HTTPException(status_code=404, detail=f"Order '{order_id}' not found")
+        return _to_response(order)
+    try:
+        result = svc.update_order_status(order_id, payload.status)
+    except OrderNotFoundError:
         raise HTTPException(status_code=404, detail=f"Order '{order_id}' not found")
-    if isinstance(result, _Terminal):
-        raise HTTPException(status_code=409, detail=f"Order '{order_id}' is in a terminal state ({result.status}) and cannot be updated")
+    except InvalidTransitionError as e:
+        raise HTTPException(status_code=409, detail=f"Order '{order_id}' is in a terminal state ({e.current_status}) and cannot be updated")
     return _to_response(result)

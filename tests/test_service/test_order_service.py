@@ -4,8 +4,9 @@ from datetime import datetime
 from unittest.mock import MagicMock
 
 from src.domain.order import Order, OrderItem, OrderStatus
+from src.domain.exceptions import InvalidTransitionError, OrderNotFoundError
 from src.infrastructure.db.repositories.order_repository import OrderRepository
-from src.application.services.order_service import OrderService, _NotFound, _Terminal
+from src.application.services.order_service import OrderService
 
 
 def make_repo() -> MagicMock:
@@ -93,8 +94,8 @@ def test_update_order_status_not_found() -> None:
     repo = make_repo()
     repo.get.return_value = None
     svc = OrderService(repo)
-    result = svc.update_order_status("missing", OrderStatus.SHIPPED)
-    assert isinstance(result, _NotFound)
+    with pytest.raises(OrderNotFoundError):
+        svc.update_order_status("missing", OrderStatus.SHIPPED)
 
 
 @pytest.mark.parametrize("terminal_status", [OrderStatus.CANCELLED, OrderStatus.DELIVERED])
@@ -102,16 +103,9 @@ def test_update_order_status_terminal(terminal_status: OrderStatus) -> None:
     repo = make_repo()
     repo.get.return_value = make_order(status=terminal_status)
     svc = OrderService(repo)
-    result = svc.update_order_status("o1", OrderStatus.SHIPPED)
-    assert isinstance(result, _Terminal)
-
-
-def test_update_order_status_none_payload_returns_order() -> None:
-    repo = make_repo()
-    repo.get.return_value = make_order()
-    svc = OrderService(repo)
-    result = svc.update_order_status("o1", None)
-    assert isinstance(result, Order)
+    with pytest.raises(InvalidTransitionError) as exc_info:
+        svc.update_order_status("o1", OrderStatus.SHIPPED)
+    assert exc_info.value.current_status == terminal_status
 
 
 def test_update_order_status_success() -> None:

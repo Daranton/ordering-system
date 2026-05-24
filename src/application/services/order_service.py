@@ -1,23 +1,9 @@
 from datetime import datetime, timezone
-from typing import TypeAlias
 
 from src.domain.order import Order, OrderItem, OrderStatus
 from src.domain.repository import OrderRepositoryProtocol
 from src.domain.ids import generate_order_id
-
-TERMINAL_STATUSES: frozenset[OrderStatus] = frozenset({OrderStatus.CANCELLED, OrderStatus.DELIVERED})
-
-
-class _NotFound:
-    pass
-
-
-class _Terminal:
-    def __init__(self, status: OrderStatus) -> None:
-        self.status = status
-
-
-UpdateResult: TypeAlias = Order | _NotFound | _Terminal
+from src.domain.exceptions import InvalidTransitionError, OrderNotFoundError
 
 
 class OrderService:
@@ -45,15 +31,12 @@ class OrderService:
     def delete_order(self, order_id: str) -> bool:
         return self._repo.soft_delete(order_id) is not None
 
-    def update_order_status(self, order_id: str, new_status: OrderStatus | None) -> UpdateResult:
+    def update_order_status(self, order_id: str, new_status: OrderStatus) -> Order:
         order = self._repo.get(order_id)
         if order is None:
-            return _NotFound()
-        if order.status in TERMINAL_STATUSES:
-            return _Terminal(order.status)
-        if new_status is None:
-            return order
+            raise OrderNotFoundError(order_id)
+        order.transition_to(new_status)
         updated = self._repo.update_status(order_id, new_status)
         if updated is None:
-            return _NotFound()
+            raise OrderNotFoundError(order_id)
         return updated
