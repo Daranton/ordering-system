@@ -1,39 +1,47 @@
 # Validation
 
-Validation is split across two layers depending on which interface is being used.
+Validation is split across two layers: the API layer catches bad input at the HTTP boundary, and the domain layer enforces business invariants regardless of how the domain is called.
 
-## Domain layer (`models.py`)
+## API layer (`src/api/schemas.py`)
 
-The `Order` dataclass validates itself in `__post_init__`. This runs regardless of whether the order came from the CLI or the API.
-
-- `quantity` must not be negative — raises `ValueError` if it is
-- `status` is coerced from a string to `OrderStatus` if needed
-
-This is the last line of defence. Even if validation higher up the stack is bypassed or skipped, an `Order` object cannot be created in an invalid state.
-
-## API layer (`schemas.py`)
-
-Pydantic validates incoming HTTP request data before it reaches domain code.
+Pydantic validates all incoming HTTP request data before it reaches domain code.
 
 ### OrderItemSchema
-- `product_name` - non-empty string, max 200 characters
-- `quantity` - integer greater than 0
-- `unit_price` - float greater than 0
+- `product_name` — non-empty string, max 200 characters
+- `quantity` — integer greater than 0
+- `unit_price` — float greater than 0
 
 ### OrderCreate
-- `customer_name` - non-empty string, max 100 characters
-- `items` - list with at least one `OrderItemSchema`
+- `customer_name` — non-empty string, max 100 characters
+- `items` — list with at least one `OrderItemSchema`
 
 ### OrderUpdate
-- `status` - optional; if provided, normalised to lowercase then checked against `OrderStatus`
+- `status` — optional; if provided, normalised to lowercase then checked against `OrderStatus`
 
 The `normalise_status` field validator runs with `mode="before"`, meaning it transforms the raw input string before Pydantic attempts enum coercion. This is what allows `"PENDING"` and `"ShiPpeD"` to be accepted.
 
+## Domain layer (`src/domain/`)
+
+The domain enforces business invariants that Pydantic cannot express — specifically, rules about state transitions.
+
+### `Order.transition_to(new_status)`
+
+Defined in `src/domain/order.py`. Called by `OrderService` whenever an order's status is updated.
+
+- If the current status is in `TERMINAL_STATUSES` (`CANCELLED` or `DELIVERED`), raises `InvalidTransitionError`.
+- Otherwise, updates `self.status` to `new_status`.
+
+`InvalidTransitionError` is defined in `src/domain/exceptions.py` and carries the current status as `current_status`. The API layer catches it and returns a `409 Conflict` response.
+
 ## Why both layers?
 
-The CLI bypasses the API schemas entirely - it reads `argparse` input and constructs `Order` objects directly. If validation only existed in `schemas.py`, the CLI would have no protection. The domain layer validation in `models.py` ensures both interfaces enforce the same rules.
+The two layers guard against different threats:
+
+- **Pydantic** guards against invalid external input — malformed JSON, wrong types, out-of-range values. It runs at the HTTP boundary and rejects bad requests before they reach the domain.
+- **Domain validation** guards against misuse from within the codebase — a service or future caller attempting an illegal state transition regardless of where the request came from.
 
 ```
-CLI input  →  models.py validation  ✓
-API input  →  schemas.py validation  →  models.py validation  ✓
+HTTP request  →  schemas.py (Pydantic)  →  OrderService  →  Order.transition_to()
+                      ↓ rejects bad input          ↓ raises InvalidTransitionError
+                   422 Unprocessable             409 Conflict
 ```
