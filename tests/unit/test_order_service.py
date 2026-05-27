@@ -65,6 +65,25 @@ def test_create_order_generates_id() -> None:
     assert len(ids) == 100
 
 
+# --- list_orders ---
+
+def test_list_orders_delegates_to_repo() -> None:
+    repo = make_repo()
+    repo.list_by_status.return_value = [make_order()]
+    svc = OrderService(repo)
+    result = svc.list_orders(OrderStatus.PENDING)
+    repo.list_by_status.assert_called_once_with(OrderStatus.PENDING)
+    assert len(result) == 1
+
+
+def test_list_orders_passes_none_for_no_filter() -> None:
+    repo = make_repo()
+    repo.list_by_status.return_value = []
+    svc = OrderService(repo)
+    svc.list_orders(None)
+    repo.list_by_status.assert_called_once_with(None)
+
+
 # --- get_order ---
 
 def test_get_order_returns_none_when_missing() -> None:
