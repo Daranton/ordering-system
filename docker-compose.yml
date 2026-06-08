@@ -1,5 +1,5 @@
 services:
-  postgres:
+  postgres-orders:
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: orders
@@ -12,6 +12,23 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U orders_user -d orders"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-auth:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: auth
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: dev_password
+    ports:
+      - "4321:5432"
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -29,3 +46,4 @@ services:
 
 volumes:
   postgres_data:
+  postgres_auth_data:
