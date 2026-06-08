@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from src.infrastructure.db.connection import SessionLocal
 from src.api.schemas import OrderCreate, OrderItemSchema, OrderResponse, OrderUpdate
 from src.infrastructure.db.repositories.order_repository import OrderRepository
+from src.domain.repository import OrderRepositoryProtocol
 from src.application.services.order_service import OrderService
 from src.domain.exceptions import InvalidTransitionError, OrderNotFoundError
 from src.domain.order import Order, OrderItem, OrderStatus
@@ -25,7 +26,7 @@ def get_repository(db: Session = Depends(get_db)) -> OrderRepository:
     return OrderRepository(db)
 
 # route function -> Depends(get_service) -> Depends(get_repository) -> Depends(get_db) -> SessionLocal()
-def get_service(repo: OrderRepository = Depends(get_repository)) -> OrderService:
+def get_service(repo: OrderRepositoryProtocol = Depends(get_repository)) -> OrderService:
     return OrderService(repo)
 
 
