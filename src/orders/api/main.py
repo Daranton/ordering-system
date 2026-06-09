@@ -5,13 +5,13 @@ from typing import Optional
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 
-from src.infrastructure.db.connection import SessionLocal
-from src.api.schemas import OrderCreate, OrderItemSchema, OrderResponse, OrderUpdate
-from src.infrastructure.db.repositories.order_repository import OrderRepository
-from src.domain.repository import OrderRepositoryProtocol
-from src.application.services.order_service import OrderService
-from src.domain.exceptions import InvalidTransitionError, OrderNotFoundError
-from src.domain.order import Order, OrderItem, OrderStatus
+from src.orders.infrastructure.db.connection import SessionLocal
+from src.orders.api.schemas import OrderCreate, OrderItemSchema, OrderResponse, OrderUpdate
+from src.orders.infrastructure.db.repositories.order_repository import OrderRepository
+from src.orders.domain.repository import OrderRepositoryProtocol
+from src.orders.application.services.order_service import OrderService
+from src.orders.domain.exceptions import InvalidTransitionError, OrderNotFoundError
+from src.orders.domain.order import Order, OrderItem, OrderStatus
 
 
 def get_db() -> Generator[Session, None, None]:

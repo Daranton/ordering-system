@@ -3,10 +3,10 @@ import pytest
 from datetime import datetime
 from unittest.mock import MagicMock
 
-from src.domain.order import Order, OrderItem, OrderStatus
-from src.domain.exceptions import InvalidTransitionError, OrderNotFoundError
-from src.infrastructure.db.repositories.order_repository import OrderRepository
-from src.application.services.order_service import OrderService
+from src.orders.domain.order import Order, OrderItem, OrderStatus
+from src.orders.domain.exceptions import InvalidTransitionError, OrderNotFoundError
+from src.orders.infrastructure.db.repositories.order_repository import OrderRepository
+from src.orders.application.services.order_service import OrderService
 
 
 def make_repo() -> MagicMock:

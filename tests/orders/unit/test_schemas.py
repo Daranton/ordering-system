@@ -1,6 +1,6 @@
 import pytest
 from pydantic import ValidationError
-from src.api.schemas import OrderCreate, OrderUpdate
+from src.orders.api.schemas import OrderCreate, OrderUpdate
 
 
 @pytest.mark.parametrize("status", ["pending", "confirmed", "shipped", "delivered", "cancelled", "disputed"])

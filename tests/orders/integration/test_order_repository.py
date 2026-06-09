@@ -2,8 +2,8 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from src.domain.order import Order, OrderItem, OrderStatus
-from src.infrastructure.db.repositories.order_repository import OrderRepository
+from src.orders.domain.order import Order, OrderItem, OrderStatus
+from src.orders.infrastructure.db.repositories.order_repository import OrderRepository
 
 
 def make_order(

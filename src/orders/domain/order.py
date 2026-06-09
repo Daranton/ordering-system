@@ -31,8 +31,8 @@ class Order:
     items: list[OrderItem]
 
     def transition_to(self, new_status: OrderStatus) -> None:
-        from src.domain.state_machine import TERMINAL_STATUSES
-        from src.domain.exceptions import InvalidTransitionError
+        from src.orders.domain.state_machine import TERMINAL_STATUSES
+        from src.orders.domain.exceptions import InvalidTransitionError
         if self.status in TERMINAL_STATUSES:
             raise InvalidTransitionError(self.status)
         self.status = new_status

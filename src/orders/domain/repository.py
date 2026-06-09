@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from src.domain.order import Order, OrderStatus
+from src.orders.domain.order import Order, OrderStatus
 
 
 class OrderRepositoryProtocol(Protocol):

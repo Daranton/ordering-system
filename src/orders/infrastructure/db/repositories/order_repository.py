@@ -3,8 +3,8 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from src.domain.order import Order, OrderItem, OrderStatus
-from src.infrastructure.db.models import OrderItemModel, OrderModel
+from src.orders.domain.order import Order, OrderItem, OrderStatus
+from src.orders.infrastructure.db.models import OrderItemModel, OrderModel
 
 
 class OrderRepository:

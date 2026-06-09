@@ -1,8 +1,8 @@
 import pytest
 from datetime import datetime
 
-from src.domain.order import Order, OrderItem, OrderStatus
-from src.domain.exceptions import InvalidTransitionError
+from src.orders.domain.order import Order, OrderItem, OrderStatus
+from src.orders.domain.exceptions import InvalidTransitionError
 
 
 def make_order(status: OrderStatus = OrderStatus.PENDING) -> Order:

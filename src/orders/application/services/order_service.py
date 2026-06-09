@@ -1,9 +1,9 @@
 import uuid
 from datetime import datetime, timezone
 
-from src.domain.order import Order, OrderItem, OrderStatus
-from src.domain.repository import OrderRepositoryProtocol
-from src.domain.exceptions import InvalidTransitionError, OrderNotFoundError
+from src.orders.domain.order import Order, OrderItem, OrderStatus
+from src.orders.domain.repository import OrderRepositoryProtocol
+from src.orders.domain.exceptions import InvalidTransitionError, OrderNotFoundError
 
 
 class OrderService:
