@@ -1,0 +1,9 @@
+from typing import Protocol
+
+from src.auth.domain.user import User
+
+
+class UserRepositoryProtocol(Protocol):
+    def add(self, user: User) -> User: ...
+    def get_by_email(self, email: str) -> User | None: ...
+    def get_by_id(self, user_id: str) -> User | None: ...
