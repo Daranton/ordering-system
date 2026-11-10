@@ -60,17 +60,27 @@ Interactive docs (Swagger UI) at `http://localhost:8000/docs`.
 
 ## Running the tests
 
-Start the test database, then run the suite:
+Unit tests need no setup:
+
+```bash
+pytest tests/orders/unit
+```
+
+Integration tests run against a real Postgres. Start the test database first:
 
 ```bash
 docker compose up -d postgres-test
 pytest
 ```
 
+Without the test database, integration tests are skipped with a hint (`pytest -rs` shows the reason). In CI they always run.
+
 ## Type checking
 
+Strict mode is set in `pyproject.toml`:
+
 ```bash
-mypy . (strict is already set in pyproject.toml)
+mypy .
 ```
 
 ## CLI
@@ -114,37 +124,49 @@ python -m cli.main update 3f2a1b4c-8e9d-4f0a-b1c2-d3e4f5a6b7c8 shipped
 
 ## Project structure
 
+Two bounded contexts, `orders` and `auth`, each with the same layered layout.
+
 ```
 ordering-system/
 ├── src/
-│   ├── domain/                         # Pure business logic, no I/O
-│   │   ├── order.py                    # Order, OrderItem, OrderStatus
-│   │   ├── repository.py               # OrderRepositoryProtocol (abstract interface)
-│   │   └── ids.py                      # generate_order_id
-│   ├── application/
-│   │   └── services/
-│   │       └── order_service.py        # Use cases, depends only on domain
-│   ├── infrastructure/
-│   │   └── db/
-│   │       ├── connection.py           # SQLAlchemy engine and session
-│   │       ├── models.py               # ORM models (OrderModel, OrderItemModel)
-│   │       └── repositories/
-│   │           └── order_repository.py # Concrete repository implementation
-│   ├── api/
-│   │   ├── main.py                     # FastAPI routes, dependency wiring, schema mapping
-│   │   └── schemas.py                  # Pydantic request/response schemas
-│   └── config.py                       # DATABASE_URL from environment
+│   ├── orders/
+│   │   ├── domain/                         # Pure business logic, no I/O
+│   │   │   ├── order.py                    # Order, OrderItem, OrderStatus
+│   │   │   ├── state_machine.py            # Allowed status transitions, terminal statuses
+│   │   │   ├── exceptions.py               # OrderNotFoundError, InvalidTransitionError
+│   │   │   └── repository.py               # OrderRepositoryProtocol (abstract interface)
+│   │   ├── application/
+│   │   │   └── services/
+│   │   │       └── order_service.py        # Use cases, depends only on domain
+│   │   ├── infrastructure/
+│   │   │   └── db/
+│   │   │       ├── connection.py           # SQLAlchemy engine and session
+│   │   │       ├── models.py               # ORM models (OrderModel, OrderItemModel)
+│   │   │       └── repositories/
+│   │   │           └── order_repository.py # Concrete repository implementation
+│   │   ├── api/
+│   │   │   ├── main.py                     # FastAPI routes, dependency wiring
+│   │   │   └── schemas.py                  # Pydantic request/response schemas
+│   │   ├── alembic/                        # Orders migrations (alembic.ini)
+│   │   └── config.py                       # DATABASE_URL from environment
+│   └── auth/                               # Auth service scaffold, same layout
+│       ├── domain/                         # User, UserRepositoryProtocol
+│       ├── infrastructure/db/              # UserModel, UserRepository
+│       ├── api/                            # FastAPI app with GET /health
+│       ├── alembic/                        # Auth migrations (alembic-auth.ini)
+│       └── config.py                       # AUTH_DATABASE_URL from environment
 ├── cli/
-│   └── main.py                         # CLI client (communicates with API via HTTP)
-├── alembic/                            # Database migrations
-│   └── versions/
+│   └── main.py                             # CLI client (communicates with API via HTTP)
 └── tests/
-    ├── test_api/
-    │   ├── test_orders.py              # Integration tests (full stack, real database)
-    │   └── test_schemas.py             # Pydantic schema validation
-    ├── test_service/
-    │   └── test_order_service.py       # Unit tests (mocked repository)
-    ├── test_cli/
-    │   └── test_cli.py                 # CLI tests
-    └── test_ids.py                     # ID generation
+    ├── conftest.py                         # Default DATABASE_URL for a fresh clone
+    └── orders/
+        ├── unit/                           # No database needed
+        │   ├── test_order.py               # Order aggregate and status transitions
+        │   ├── test_order_service.py       # Service layer (mocked repository)
+        │   ├── test_schemas.py             # Pydantic schema validation
+        │   └── test_cli.py                 # CLI client
+        └── integration/                    # Real Postgres (postgres-test)
+            ├── conftest.py                 # Engine, per-test transaction rollback, skip guard
+            ├── test_order_repository.py    # Repository against the database
+            └── test_orders.py              # Full stack through the API
 ```
