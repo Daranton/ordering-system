@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from src.domain.order import OrderStatus
+    from src.orders.domain.order import OrderStatus
 
 
 class OrderNotFoundError(Exception):
