@@ -1,5 +1,7 @@
 # Ordering System
 
+![CI](https://github.com/Daranton/ordering-system/actions/workflows/ci.yml/badge.svg)
+
 A REST API and CLI tool for creating and managing orders.
 
 ## Setup
