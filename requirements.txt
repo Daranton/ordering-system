@@ -17,7 +17,6 @@ Mako==1.3.12
 MarkupSafe==3.0.3
 mypy==1.20.2
 mypy_extensions==1.1.0
--e git+https://github.com/Daranton/ordering-system.git@cb145264f0f4c972a6c969734f97f90779f50253#egg=ordering_system
 packaging==26.2
 pathspec==1.1.0
 pluggy==1.6.0
